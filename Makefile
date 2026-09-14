@@ -1,17 +1,37 @@
-PLATFORM_SRC = $(wildcard patches/*)
-SRC = $(wildcard src/*)
+PLATFORM_SRC = $(wildcard patches/*.c)
+SRC = $(wildcard src/*.c)
+
 OBJDIR = obj
-PLATFORM_OBJS = $(patsubst patches/%,$(OBJDIR)/patches/%,$(PLATFORM_SRC:.c=.o))
-OBJS = $(patsubst src/%,$(OBJDIR)/%,$(SRC:.c=.o)) $(PLATFORM_OBJS)
+
+PLATFORM_OBJS = $(patsubst patches/%.c,$(OBJDIR)/patches/%.o,$(PLATFORM_SRC))
+OBJS = $(patsubst src/%.c,$(OBJDIR)/%.o,$(SRC)) $(PLATFORM_OBJS)
+
 PLOOSHFINDER = plooshfinder/libplooshfinder.a
+
 INCLDIRS = -I./include -I./plooshfinder/include
 
-LDFLAGS += -L./plooshfinder
+CC ?= clang
+AR ?= ar
+RANLIB ?= ranlib
+
 CFLAGS ?= -O2
-CC := clang
+LDFLAGS ?=
 LIBS = -lplooshfinder
 
-.PHONY: $(PLOOSHFINDER) all
+# Enable with: make UNIVERSAL=1
+
+UNIVERSAL ?= 0
+
+ifeq ($(UNIVERSAL),1)
+	ARCH_FLAGS = -arch x86_64 -arch arm64
+else
+	ARCH_FLAGS =
+endif
+
+CFLAGS += $(ARCH_FLAGS)
+LDFLAGS += $(ARCH_FLAGS) -L./plooshfinder
+
+.PHONY: all dirs clean submodules
 
 all: dirs $(PLOOSHFINDER) $(OBJS) KPlooshFinder
 
@@ -21,20 +41,21 @@ submodules:
 dirs:
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(OBJDIR)/patches
-	@mkdir -p $(OBJDIR)/patches
 
 clean:
 	@rm -rf KPlooshFinder obj
 	@$(MAKE) -C plooshfinder clean
 
 KPlooshFinder: $(OBJS) $(PLOOSHFINDER)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(LIBS) $(INCLDIRS) $(OBJS) -o $@
+	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) $(LIBS) -o $@
 
 $(OBJDIR)/%.o: src/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLDIRS) -c -o $@ $<
 
 $(OBJDIR)/patches/%.o: patches/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLDIRS) -c -o $@ $<
 
 $(PLOOSHFINDER):
-	$(MAKE) -C plooshfinder all
+	$(MAKE) -C plooshfinder UNIVERSAL=$(UNIVERSAL) CC="$(CC)" CFLAGS="$(CFLAGS)"
