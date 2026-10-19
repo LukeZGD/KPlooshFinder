@@ -20,6 +20,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential clang
+
       - name: run make
         run: make
 

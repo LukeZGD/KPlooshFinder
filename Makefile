@@ -10,7 +10,7 @@ PLOOSHFINDER = plooshfinder/libplooshfinder.a
 
 INCLDIRS = -I./include -I./plooshfinder/include
 
-CC ?= clang
+CC = clang
 AR ?= ar
 RANLIB ?= ranlib
 
